@@ -1,4 +1,5 @@
 from midiutil.MidiFile import MIDIFile
+import random
 
 def addChord(midiFile, track, channel, pitches, time, duration, volume):
     for pitch in pitches:
@@ -23,11 +24,12 @@ class ChordMapError(Exception):
         self.chords = chords
         self.message = "These chords are mapped to but not mapped from:" + str(self.chords)
     def __str__(self):
-        return repr(self.message)
+        return self.message
 
 class ChordMap(object):
     def __init__(self):
         self.chords = {}
+        random.seed()
     def isChordValid(self, chord):
         # validate input
         areAllNotesValid = all([type(n) == int and n >= 0 and n < 128 for n in chord])
@@ -44,7 +46,33 @@ class ChordMap(object):
             raise ChordError(chord, "Chord must be tuple and notes must be int >= 0 and < 128")
         self.chords[chord] = nextChords
     def getUnmappedChords(self):
-        pass
-    def generateProgression(self, length, start):
-        pass
+        return list(set([
+            c[1] for cs in self.chords.values() for c in cs # list of mapped-to chords
+            if c[1] not in [k for k in self.chords] # keep only those not mapped-from
+        ]))
+    def pickRandomChord(self, currentChord):
+        cumulativeWeightChords = []
+        totalWeight = 0
+        for c in self.chords[currentChord]:
+            totalWeight += c[0]
+            cumulativeWeightChords.append((totalWeight,c[1]))
+        choice = random.randrange(0,totalWeight)
+        for c in cumulativeWeightChords:
+            if choice < c[0]:
+                return c[1]
+
+    def generateProgression(self, length, startChord):
+        if self.getUnmappedChords():
+            raise ChordMapError(self.getUnmappedChords())
+        if type(length) != int:
+            raise TypeError("'length' must be an integer")
+        if length < 1:
+            raise ValueError("'length' must be >= 1")
+        if not self.isChordValid(startChord):
+            raise ChordError(startChord, "Chord must be tuple and notes must be int >= 0 and < 128")
+        random.seed()
+        prog = [startChord]
+        for i in range(length):
+            prog.append(self.pickRandomChord(prog[-1]))
+        return prog
 
