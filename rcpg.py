@@ -1,9 +1,4 @@
-from midiutil.MidiFile import MIDIFile
 import random
-
-def addChord(midiFile, track, channel, pitches, time, duration, volume):
-    for pitch in pitches:
-        midiFile.addNote(track, channel, pitch, time, duration, volume)
 
 class ChordError(Exception):
     def __init__(self, chord, message):
